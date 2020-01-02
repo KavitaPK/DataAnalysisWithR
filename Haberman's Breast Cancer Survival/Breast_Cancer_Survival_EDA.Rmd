@@ -1,0 +1,362 @@
+---
+title: "Breast Cancer Survival EDA"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '5'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE)
+```
+____
+## 1. Problem Statement
+
+<center>
+![Breast Cancer Survival](C:/Users/PRABHU/Desktop/Desktop_Docs/INSAID_Docs/Term-6_Data Analysis with R/Breast Cancer Survival_Project/breast_cancer_survival.jpg){#id .class width=650 height=170px}
+</center>
+
+</br>
+__The objective is to conclude or predict survival status of patients who undergone surgery.__
+
+____
+## 2. Understanding the data
+
+__Title: Haberman’s Survival Data__</br>
+__Description:__ The dataset contains cases from a study that was conducted between 1958 and 1970 at the University of Chicago’s Billings Hospital on the survival of patients who had undergone surgery for breast cancer.</br></br>
+
+__Attribute Information:__</br>
+1. __Age :__ Age of patient at the time of operation (numerical)</br>
+
+It represent the age of patient at which they undergone surgery (age from 30 to 83)</br>
+
+2. __Years_of_operation :__ Year in which patient was undergone surgery(1958–1969)</br>
+Patient’s year of operation (year — 1900, numerical)</br>
+
+3. __Number of Axillary nodes (Lymph Node):__ Number of positive axillary nodes detected (numerical)</br>
+Lymph nodes are small, bean-shaped organs that act as filters along the lymph fluid channels. As lymph fluid leaves the breast and eventually goes back into the bloodstream, the lymph nodes try to catch and trap cancer cells before they reach other parts of the body. Having cancer cells in the lymph nodes under your arm suggests an increased risk of the cancer spreading.In our data it is axillary nodes detected(0–52)</br>
+<center>
+![](https://github.com/KavitaPK/DataAnalysisWithR/blob/master/images/lymph_nodes.jpeg)
+</center>
+
+
+</br>
+
+4. __Survival status (class attribute) :__</br>
+Status: It represent whether patient survive more than 5 years or less after undergone through surgery.</br>
+1 = the patient who survived 5 years or longer</br>
+2 = the patient who died within 5 years</br>
+
+## 3. Loading Packages and Libraries
+
+Alright! lets begin our marketing research by installing some packages and loading all the libraries.
+```{r}
+# Loading libraries
+library(plyr)
+library(dplyr)
+library(tidyverse)
+library(psych)
+library(vtree)
+library(DataExplorer)
+library(ggplot2)
+```
+
+## 4. Market Research Process </br>
+Market research is an organized effort to gather data about target markets or potential customers and then analyzing it to better understand what that group of people needs. It is a very important component of business strategy. The results of market research, which are usually summarized in a report, are then used to help business owners make more informed decisions about the company’s strategies, operations, and potential customer base.
+
+### 4.1 Importing Data
+Lets import our data first.
+```{r}
+setwd("C:/Users/PRABHU/Desktop/Desktop_Docs/INSAID_Docs/INSAID_Projects/Breast Cancer Survival_EDA")
+```
+
+```{r}
+df_haberman = read.csv("https://raw.githubusercontent.com/insaid2018/R/master/Projects/Breast_cancer_survival.csv", sep=",", quote="")
+```
+
+### 4.2 Reading Data
+```{r}
+View(df_haberman)
+```
+
+</br>
+Lets have a look at the head of the data.
+```{r}
+head(df_haberman)
+```
+
+
+To know how the structure of the data is, we will use str function.
+```{r}
+str(df_haberman)
+```
+
+
+glimpse gives you a better organized structure of the data.
+```{r}
+glimpse(df_haberman)
+```
+
+
+Using the describe() function, we can compute descriptive statistics for numerical data. The descriptive statistics help determine the distribution of numerical variables.
+```{r}
+describe(df_haberman)
+```
+
+
+### 4.3 Data Profiling
+
+Lets create a data profiling report for our dataset using the create_report function in DataExplorer package.
+```{r}
+create_report(df_haberman)
+```
+
+
+### 4.4 Cleaning the Data
+
+Now, lets do some data cleaning. For that, first we need to figure out the number of missing values in each column.
+```{r}
+numColumns = dim(df_haberman)[2] 
+vector_NAs = rep(0, numColumns)
+
+for (i in 1:numColumns) { 
+  vector_NAs[i] = sum(is.na(df_haberman[,i])) 
+} 
+print("Missing values in each column:") 
+print(vector_NAs)
+```
+
+__Observations :__ </br>
+1. There are __no missing values__ in this data set.</br>
+2. All the columns are of the integer data type.</br>
+3. The datatype of the status is an integer, it has to be converted to a categorical datatype. </br>
+4. In the Status column, the value 1 can be mapped to ‘Yes’ which means the patient has survived 5 years or longer. And the value 2 can be mapped to ‘No’ which means the patient died within 5 years.</br>
+
+
+Mapping the values of 1 and 2 to _Yes_ and _No_ respectively and printing the first 6 records from the dataset.
+
+```{r}
+df_haberman$Status <- mapvalues(df_haberman$Status,from = c(1,2),to = c("Yes", "No"))
+```                           
+
+
+```{r}
+head(df_haberman)
+```
+
+```{r warning=FALSE}
+describe(df_haberman)
+```
+
+__Observations__:</br>
+1. n : Total number of values present in respective columns.</br>
+2. mean: Mean of all the values present in the respective columns.</br>
+3. sd: Standard Deviation of the values present in the respective columns.</br>
+4. median : Median of all values present in the respective columns.</br>
+5. min: The minimum value in the column.</br>
+6. max : Maximum value in the column.</br>
+
+```{r}
+table(df_haberman$Status)
+```
+Gives each count of the status type
+
+```{r}
+library(ggpubr)
+theme_set(theme_pubr())
+
+df <- df_haberman %>%
+  group_by(Status) %>%
+  summarise(counts = n())
+
+ggplot(df, aes(x = Status, y = counts,fill=Status), alpha = 0.5, size=2) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = counts), vjust = -0.3) + 
+  theme_pubclean()
+
+```
+
+__Observations__:</br>
+1. The table() function tells how many data points for each class are present. Here, it tells how many patients survived and how many did not survive.</br>
+2. Out of 306 patients, 225 patients survived and 81 did not.</br>
+3. The dataset is imbalanced.</br>
+
+```{r}
+#status_yes <- df_haberman[df_haberman["Status"] =='Yes']
+status_yes <- subset(df_haberman, Status == 'Yes')
+summary(status_yes)
+```
+
+status_yes dataframe stores all the records where status is _Yes_.
+
+```{r}
+#status_no <- as.numeric(df_haberman$Status == 'No')
+status_no <- subset(df_haberman, Status == 'No')
+summary(status_no)
+```
+
+status_no dataframe stores all the records where status is _No_.
+
+__Observations__:</br>
+
+1. The mean age and the year in which the patients got operated are almost similar of both the classes, while the mean of the nodes of both the classes differs by 5 units approximately.</br>
+2. The nodes of patients who survived are less when compared to patients who did not survive.</br>
+
+
+### 4.5 Analyzing the Data
+
+Lets use the plot function to do univariate analysis of some variables.</br>
+
+#### 4.5.1 Univariate Analysis 
+
+The major purpose of the univariate analysis is to describe, summarize and find patterns in the single feature.
+
+##### __4.5.1.1 Which variable turns out to be significant for the analysis?__
+
+
+##### __4.5.1.2 Probability Density Function(PDF)))__</br>
+Probability Density Function (PDF) is the probability that the variable takes a value x. (a smoothed version of the histogram). PDF will be a peak like structure represents high peak if more number of data present or else it will be flat/ small peak if number of data present is less.It is smooth graph plot using the edges of histogram. </br>
+
+Here the height of the bar denotes the percentage of data points under the corresponding group.
+
+```{r}
+ggplot(df_haberman, aes(x=Age, fill=Status),weight=5) + 
+    geom_histogram(aes(x=Age,y=..density..), # Histogram with density instead of count on y-axis
+                   binwidth=3.5,alpha=0.2) +
+    geom_density(aes(x=Age, color= Status), alpha=0.3)
+
+```
+    
+
+__Observations__: </br>
+1.Major overlapping is observed, which tells us that __survival chances are irrespective of a person’s age__.</br>
+2. Although there is overlapping we can vaguely tell that, __people whose age is in the range 30–40 are more likely to survive, and 40–60 are less likely to survive. While people whose age is in the range 60–75 have equal chances of surviving and not surviving__.</br>
+3. Yet, this cannot be our final conclusion. We cannot decide the survival chances of a patient just by considering the age parameter.</br>
+
+
+
+```{r}
+ggplot(df_haberman, aes(x=Years_of_operation, fill=Status),weight=5) + 
+    geom_histogram(aes(x=Years_of_operation,y=..density..), # Histogram with density instead of count on y-axis
+                   binwidth=3.5,alpha=0.2) +
+    geom_density(aes(x=Years_of_operation, color= Status), alpha=0.3)
+```
+
+__Observations__:</br>
+1. There is major overlapping observed. This graph only tells how many of the operations were successful and how many weren’t. This cannot be a parameter to decide the patient’s survival chances.</br>
+2. However, it can be observed that in the years __1960 and 1965 there were more unsuccessful operations__.</br>
+
+
+
+```{r}
+ggplot(df_haberman, aes(x=Pos_axillary_nodes, fill=Status),weight=5) + 
+    geom_histogram(aes(x=Pos_axillary_nodes,y=..density..), # Histogram with density instead of count on y-axis
+                   binwidth=3.5,alpha=0.2) +
+    geom_density(aes(x=Pos_axillary_nodes, color= Status), alpha=0.3)
+```
+
+__Observations__:</br>
+Patients with no nodes or 1 node are more likely to survive. There are very few chances of surviving if there are 25 or more nodes.
+
+
+##### __4.5.1.3 Cumulative Distribution Function(CDF)__
+
+The Cumulative Distribution Function (CDF) is the probability that the variable takes a value less than or equal to x.
+
+```{r}
+ggplot(df_haberman, aes(Pos_axillary_nodes, colour = Status)) + stat_ecdf()
+```
+
+__Observations__:</br>
+83.55% of the patients who have survived had nodes in the range of 0–4.6
+
+##### __4.5.1.4 Box Plots and Violin Plots__ 
+
+The box extends from the lower to upper quartile values of the data, with a line at the median. The whiskers extend from the box to show the range of the data. Outlier points are those past the end of the whiskers.</br>
+Violin plot is the combination of a box plot and probability density function(CDF).</br>
+
+```{r}
+boxplot(df_haberman$Age ~ df_haberman$Status, col = c("#999999", "#56B4E9"), xlab = "Status", ylab ="Age")
+
+boxplot(df_haberman$Years_of_operation ~ df_haberman$Status, col = c("#999999", "#56B4E9"), xlab = "Status", ylab ="Year")
+
+boxplot(df_haberman$Pos_axillary_nodes ~ df_haberman$Status, col = c("#999999", "#56B4E9"), xlab = "Status", ylab ="Nodes")
+
+```
+```{r}
+ggplot(df_haberman,aes(Status, Age))  + geom_violin(alpha=0.5, color="dark gray")+geom_jitter(alpha=0.5, aes(color=Status),size=1,
+      position = position_jitter(width = 0.1))+coord_flip()
+
+
+ggplot(df_haberman,aes(Status, Years_of_operation))  + geom_violin(alpha=0.5, color="dark gray")+geom_jitter(alpha=0.5, aes(color=Status),size=1,
+      position = position_jitter(width = 0.1))+coord_flip()
+
+
+ggplot(df_haberman,aes(Status, Pos_axillary_nodes))  + geom_violin(alpha=0.5, color="dark gray")+geom_jitter(alpha=0.5, aes(color=Status),size=1,
+      position = position_jitter(width = 0.1))+coord_flip()
+```
+
+__Observations__:</br>
+1. Patients with more than 1 nodes are not likely to survive. __More the number of nodes, lesser the survival.__ </br>
+2. A large percentage of patients who survived had 0 nodes. Yet there is a small percentage of patients who had no positive axillary nodes died within 5 years of operation, thus __an absence of positive axillary nodes cannot always guarantee survival.__</br>
+3. There were comparatively __more people who got operated in the year 1965 did not survive for more than 5 years.__</br>
+4. There were comparatively more people in the age group 45 to 65 who did not survive. __Patient age alone is not an important parameter in determining the survival of a patient.__</br>
+5. The box plots and violin plots for Age and Year parameters give similar results with a substantial overlap of data points. The overlap in the box plot and the violin plot of nodes is less compared to other features but the overlap still exists and thus __it is difficult to set a threshold to classify both classes of patients.__</br>
+
+
+
+### 5. Bi-Variate analysis
+
+#### 5.1 Scatter Plots
+
+A scatter plot is a two-dimensional data visualization that uses dots to represent the values obtained for two different variables — one plotted along the x-axis and the other plotted along the y-axis.</br>
+
+```{r}
+ggplot(df_haberman, aes(x = Age, y = Pos_axillary_nodes, color=Status)) + geom_point() + labs(title = "Scatter Plot : Age Vs Nodes", y ="Nodes", size=2)
+
+```
+
+__Observations__:</br>
+1. Patients with 0 nodes are more likely to survive irrespective of their age.</br>
+2. There are hardly any patients who have nodes more than 25.</br>
+3. Patients aged more than 50 with nodes more than 10 are less likely to survive.</br>
+
+
+#### 5.2 Pair Plots </br>
+By default, this function will create a grid of Axes such that each variable in data will be shared in the y-axis across a single row and in the x-axis across a single column. The diagonal Axes are treated differently, drawing a plot to show the univariate distribution of the data for the variable in that column.</br>
+```{r}
+library("GGally")  # Load GGally package
+ggpairs(df_haberman, 
+        columns = c("Age", "Years_of_operation", "Pos_axillary_nodes"), 
+        mapping = aes(color = Status, alpha=0.5,legend= "Status"),
+        lower=list(continuous='points'), 
+        axisLabels='none', upper=list(continuous='blank')) + theme(legend.position = "top")
+```
+
+__Observations__:</br>
+The plot between year and nodes is comparatively better.</br>
+
+### 6. Multivariate analysis
+
+#### 6.1 Contour Plot
+
+A contour line or isoline of a function of two variables is a curve along which the function has a constant value. It is a cross-section of the three-dimensional graph.
+
+```{r}
+#devtools::install_github("WinVector/WVPlots")
+library(WVPlots)
+
+WVPlots::ScatterHist(df_haberman, "Years_of_operation", "Age", smoothmethod="lm", 
+                     title="WVPlot: Age Vs Nodes")
+```
+
+__Observations__:</br>
+From 1960 to 1964, more operations done on the patients in the age group 45 to 55.</br>
+
+
+### 7. Conclusions:
+
+1. Patient’s __age and operation year alone are not deciding factors for his/her survival__. Yet, people less than 35 years have more chance of survival.</br>
+2. __Survival chance is inversely proportional to the number of positive axillary nodes__. We also saw that the __absence of positive axillary nodes cannot always guarantee survival__.</br>
+3. The objective of classifying the survival status of a new patient based on the given features is a difficult task as the data is imbalanced.</br>
